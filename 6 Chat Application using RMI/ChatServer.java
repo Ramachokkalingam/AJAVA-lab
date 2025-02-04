@@ -1,37 +1,34 @@
 import java.rmi.*;
-import java.util.Scanner;
+import java.rmi.server.*;
+import java.rmi.registry.*;
+import java.util.ArrayList;
+import java.util.List;
 
-public class ChatClient {
+public class ChatServer extends UnicastRemoteObject implements Chat {
+    private List<String> chatHistory;
+
+    protected ChatServer() throws RemoteException {
+        chatHistory = new ArrayList<>();
+    }
+
+    public synchronized void sendMessage(String username, String message) throws RemoteException {
+        String formattedMessage = username + ": " + message;
+        chatHistory.add(formattedMessage);
+        System.out.println(formattedMessage);
+    }
+
+    public synchronized String receiveMessages() throws RemoteException {
+        return String.join("\n", chatHistory);
+    }
+
     public static void main(String[] args) {
         try {
-            // Connect to the ChatService
-            Chat chat = (Chat) Naming.lookup("rmi://localhost/ChatService");
-
-            Scanner scanner = new Scanner(System.in);
-            System.out.print("Enter your username: ");
-            String username = scanner.nextLine();
-
-            System.out.println("Connected to chat! Type messages and press Enter.");
-
-            while (true) {
-                System.out.print("> ");
-                String message = scanner.nextLine();
-                
-                if (message.equalsIgnoreCase("exit")) {
-                    System.out.println("Exiting chat...");
-                    break;
-                }
-
-                // Send message to server
-                chat.sendMessage(username, message);
-
-                // Fetch and display chat history
-                System.out.println("\nChat History:\n" + chat.receiveMessages());
-            }
-
-            scanner.close();
+            ChatServer server = new ChatServer();
+            LocateRegistry.createRegistry(1099);
+            Naming.rebind("ChatService", server);
+            System.out.println("Chat Server is running...");
         } catch (Exception e) {
-            System.out.println("Client Error: " + e);
+            System.out.println("Server Error: " + e);
         }
     }
 }
