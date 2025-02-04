@@ -1,19 +1,36 @@
 import java.rmi.*;
-import java.util.Scanner;
+import java.rmi.server.*;
+import java.rmi.registry.*;
+import java.util.ArrayList;
+import java.util.List;
 
-public class ChatClient {
-    public static void main(String args[]) {
+public class ChatServer extends UnicastRemoteObject implements Chat {
+    private List<String> chatHistory;
+
+    protected ChatServer() throws RemoteException {
+        chatHistory = new ArrayList<>();
+    }
+
+    // Store new messages
+    public synchronized void sendMessage(String username, String message) throws RemoteException {
+        String formattedMessage = username + ": " + message;
+        chatHistory.add(formattedMessage);
+        System.out.println(formattedMessage);
+    }
+
+    // Return chat history
+    public synchronized String receiveMessages() throws RemoteException {
+        return String.join("\n", chatHistory);
+    }
+
+    public static void main(String[] args) {
         try {
-            Chat stub = (Chat) Naming.lookup("rmi://localhost/ChatService");
-            Scanner sc = new Scanner(System.in);
-
-            while (true) {
-                System.out.print("You: ");
-                String message = sc.nextLine();
-                stub.sendMessage(message);
-            }
+            ChatServer server = new ChatServer();
+            LocateRegistry.createRegistry(1099);  // Start RMI registry
+            Naming.rebind("ChatService", server);
+            System.out.println("Chat Server is running...");
         } catch (Exception e) {
-            System.out.println("Client Error: " + e);
+            System.out.println("Server Error: " + e);
         }
     }
 }

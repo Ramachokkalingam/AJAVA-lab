@@ -1,31 +1,37 @@
 import java.rmi.*;
-import java.rmi.server.*;
-import java.util.ArrayList;
+import java.util.Scanner;
 
-public class ChatServer extends UnicastRemoteObject implements Chat {
-    private static ArrayList<Chat> clients = new ArrayList<>();
-
-    protected ChatServer() throws RemoteException {
-        super();
-    }
-
-    public void sendMessage(String message) throws RemoteException {
-        System.out.println("Client: " + message);
-        for (Chat client : clients) {
-            if (client != this) {
-                client.sendMessage("Server Echo: " + message);
-            }
-        }
-    }
-
-    public static void main(String args[]) {
+public class ChatClient {
+    public static void main(String[] args) {
         try {
-            ChatServer server = new ChatServer();
-            Naming.rebind("ChatService", server);
-            clients.add(server);
-            System.out.println("Chat Server is running...");
+            // Connect to the ChatService
+            Chat chat = (Chat) Naming.lookup("rmi://localhost/ChatService");
+
+            Scanner scanner = new Scanner(System.in);
+            System.out.print("Enter your username: ");
+            String username = scanner.nextLine();
+
+            System.out.println("Connected to chat! Type messages and press Enter.");
+
+            while (true) {
+                System.out.print("> ");
+                String message = scanner.nextLine();
+                
+                if (message.equalsIgnoreCase("exit")) {
+                    System.out.println("Exiting chat...");
+                    break;
+                }
+
+                // Send message to server
+                chat.sendMessage(username, message);
+
+                // Fetch and display chat history
+                System.out.println("\nChat History:\n" + chat.receiveMessages());
+            }
+
+            scanner.close();
         } catch (Exception e) {
-            System.out.println("Server Error: " + e);
+            System.out.println("Client Error: " + e);
         }
     }
 }
